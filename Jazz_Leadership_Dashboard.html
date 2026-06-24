@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jazz — Leadership Meeting Dashboard</title>
+<style>
+  :root {
+    --bg:         #131315;
+    --bg2:        #1E1E1E;
+    --bg3:        #252527;
+    --border:     #848485;
+    --border2:    #534E4F;
+    --border3:    #2a2a2c;
+    --heading:    #FFFFFF;
+    --body:       #C9C9C9;
+    --muted:      #848485;
+    --yellow:     #EFC06E;
+    --yellow-bg:  #1E1E1E;
+    --green:      #7ACFAD;
+    --green-bg:   #1E1E1E;
+    --red:        #FE6D63;
+    --red-bg:     #1E1E1E;
+    --radius:     8px;
+    --radius-sm:  4px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--body); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .app { max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 16px; border-bottom: 2px solid var(--yellow); margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo-mark { width: 36px; height: 36px; background: var(--yellow); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo-mark span { font-weight: 900; font-size: 16px; color: #131315; letter-spacing: -1px; }
+  .header-title h1 { color: var(--heading); font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-title p  { color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .week-badge { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 13px; color: var(--body); display: flex; align-items: center; gap: 8px; }
+  .week-badge input { background: transparent; border: none; color: var(--yellow); font-size: 13px; font-weight: 600; outline: none; width: 120px; }
+
+  /* Buttons */
+  .btn { padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .btn-primary { background: var(--yellow); color: #131315; border-color: var(--yellow); }
+  .btn-primary:hover { background: #E9A735; border-color: #E9A735; }
+  .btn-ghost { background: transparent; color: var(--body); border-color: var(--border2); }
+  .btn-ghost:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; display: inline-block; width: 12px; height: 2px; background: var(--yellow); border-radius: 2px; }
+
+  /* KPI Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .kpi-card { background: var(--bg2); border: 1px solid var(--border3); border-radius: var(--radius); padding: 18px; position: relative; transition: border-color 0.2s; }
+  .kpi-card:hover { border-color: var(--border2); }
+  .kpi-card.status-G { border-left: 3px solid var(--green); }
+  .kpi-card.status-Y { border-left: 3px solid var(--yellow); }
+  .kpi-card.status-R { border-left: 3px solid var(--red); }
+  .kpi-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+  .kpi-label-input { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); background: transparent; border: none; outline: none; font-family: inherit; width: 100%; min-width: 0; }
+  .kpi-label-input:focus { border-bottom: 1px dotted var(--border2); color: var(--yellow); }
+  .kpi-card-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .rag-picker { display: flex; gap: 4px; }
+  .rag-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: all 0.15s; opacity: 0.35; }
+  .rag-btn:hover { opacity: 0.7; }
+  .rag-btn.active { opacity: 1; border-color: rgba(255,255,255,0.4); }
+  .rag-btn.G { background: var(--green); color: #06603C; }
+  .rag-btn.Y { background: var(--yellow); color: #8A4408; }
+  .rag-btn.R { background: var(--red); color: #AF251B; }
+  .kpi-remove { background: transparent; border: none; color: var(--border2); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; transition: color 0.15s; }
+  .kpi-remove:hover { color: var(--red); }
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--heading); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+  .kpi-value input { background: transparent; border: none; font-size: 28px; font-weight: 700; color: var(--heading); letter-spacing: -1px; outline: none; width: 100%; }
+  .kpi-value input:focus { border-bottom: 1px solid var(--yellow); }
+  .kpi-target { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .kpi-target input { background: transparent; border: none; font-size: 12px; color: var(--muted); outline: none; width: 100%; }
+  .kpi-target input:focus { border-bottom: 1px dotted var(--border); }
+  .kpi-note textarea { background: transparent; border: none; font-size: 12px; color: var(--body); outline: none; width: 100%; resize: none; min-height: 36px; font-family: inherit; line-height: 1.4; }
+  .kpi-note textarea:focus { border-bottom: 1px dotted var(--border); }
+  .edit-hint { font-size: 10px; color: var(--border); margin-top: 6px; font-style: italic; }
+
+  /* Projects Card */
+  .projects-card { background: var(--bg2); border: 1px solid var(--border3); border-radius: var(--radius); padding: 18px; margin-top: 14px; }
+  .projects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .projects-list { display: flex; flex-direction: column; gap: 8px; }
+  .project-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg3); border-radius: var(--radius-sm); border: 1px solid var(--border3); }
+  .project-del { background: transparent; border: none; color: var(--border); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; transition: color 0.15s; }
+  .project-del:hover { color: var(--red); }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
+  .badge.G { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+  .badge.Y { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+  .badge.R { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+
+  /* Desired Wins / Members */
+  .members-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .tab-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--body); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .tab-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+  .tab-btn.active { background: var(--yellow); border-color: var(--yellow); color: #131315; }
+  .tab-btn.add-member { border-style: dashed; color: var(--muted); }
+  .tab-btn.add-member:hover { border-color: var(--yellow); color: var(--yellow); }
+  .member-panel { display: none; }
+  .member-panel.active { display: block; }
+  .member-card { background: var(--bg2); border: 1px solid var(--border3); border-radius: var(--radius); padding: 20px; }
+  .member-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .member-name-input { background: transparent; border: none; font-size: 18px; font-weight: 700; color: var(--heading); outline: none; font-family: inherit; }
+  .member-name-input:focus { border-bottom: 1px solid var(--yellow); }
+  .member-controls { display: flex; align-items: center; gap: 6px; }
+  .move-btn { background: var(--bg3); border: 1px solid var(--border3); border-radius: var(--radius-sm); color: var(--muted); cursor: pointer; font-size: 13px; padding: 3px 8px; transition: all 0.15s; line-height: 1; }
+  .move-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+  .horizon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .horizon-grid { grid-template-columns: 1fr; } }
+  .horizon-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .horizon-label.week  { color: var(--yellow); }
+  .horizon-label.month { color: var(--green); }
+  .horizon-label.qtr   { color: #C0E4E8; }
+  .win-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--bg3); border-radius: var(--radius-sm); border: 1px solid var(--border3); margin-bottom: 6px; }
+  .win-number { font-size: 10px; font-weight: 700; color: var(--muted); width: 14px; flex-shrink: 0; }
+  .win-input { background: transparent; border: none; outline: none; color: var(--heading); font-size: 13px; flex: 1; font-family: inherit; }
+  .win-input::placeholder { color: var(--border); font-style: italic; }
+  .wins-textarea { width: 100%; min-height: 80px; background: var(--bg3); border: 1px solid var(--border3); border-radius: var(--radius-sm); color: var(--heading); font-size: 13px; font-family: inherit; padding: 10px 12px; outline: none; resize: vertical; line-height: 1.5; }
+  .wins-textarea:focus { border-color: var(--border2); }
+  .wins-textarea::placeholder { color: var(--border); font-style: italic; }
+
+  /* Strategic */
+  .strategic-card { background: var(--bg2); border: 1px solid var(--border3); border-left: 3px solid #C0E4E8; border-radius: var(--radius); padding: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .strategic-card { grid-template-columns: 1fr; } }
+  .strat-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 6px; }
+  .strat-field input, .strat-field textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border3); border-radius: var(--radius-sm); color: var(--heading); font-size: 13px; font-family: inherit; padding: 8px 10px; outline: none; }
+  .strat-field textarea { min-height: 60px; resize: vertical; }
+  .strat-field input:focus, .strat-field textarea:focus { border-color: #C0E4E8; }
+
+  /* Actions */
+  .actions-table { width: 100%; border-collapse: collapse; }
+  .actions-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); border-bottom: 1px solid var(--border3); }
+  .actions-table td { padding: 6px 6px; vertical-align: middle; }
+  .actions-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .actions-table td input[type="text"] { background: transparent; border: none; outline: none; color: var(--heading); font-size: 13px; font-family: inherit; width: 100%; padding: 4px 6px; border-radius: 4px; }
+  .actions-table td input[type="text"]:focus { background: var(--bg3); }
+  .actions-table td input[type="date"] { background: var(--bg3); border: 1px solid var(--border3); border-radius: 4px; outline: none; color: var(--heading); font-size: 12px; padding: 4px 8px; font-family: inherit; }
+  .actions-table td input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+  .action-row.done td input[type="text"] { text-decoration: line-through; color: var(--muted); }
+
+  /* Save bar */
+  .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border3); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 100; }
+  .save-status { font-size: 12px; color: var(--muted); }
+  .save-status.saved { color: var(--green); }
+  .save-status.unsaved { color: var(--yellow); }
+  .save-actions { display: flex; gap: 8px; }
+
+  .divider { border: none; border-top: 1px solid var(--border3); margin: 28px 0; }
+
+  @media print {
+    body { background: white; color: #131315; }
+    .save-bar, .btn, .rag-picker, .project-del, .kpi-remove, .move-btn, .tab-btn.add-member { display: none !important; }
+    .app { max-width: 100%; padding: 0; }
+    .kpi-card, .projects-card, .member-card, .strategic-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-mark"><span>J</span></div>
+      <div class="header-title">
+        <h1>Leadership Meeting Dashboard</h1>
+        <p>Jazz · Executive Operating Rhythm</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="week-badge">
+        Week of <input type="text" id="weekDate" placeholder="e.g. Jun 23, 2026" />
+      </div>
+      <button class="btn btn-ghost" onclick="newWeek()">↺ New Week</button>
+      <button class="btn btn-ghost" onclick="exportWeekCSV()" title="Export this week's data as CSV for Google Sheets">📊 Export Week</button>
+      <button class="btn btn-primary" onclick="saveDashboard()">Save</button>
+      <button class="btn btn-ghost" onclick="window.print()">Print</button>
+    </div>
+  </header>
+
+  <!-- AGENDA QUICK REF -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;">
+    <span style="background:#1E1E1E;border:1px solid #2a2a2c;border-radius:4px;padding:5px 12px;font-size:11px;color:#848485;"><span style="color:#EFC06E;font-weight:700;">0:00</span> · CEO Opening</span>
+    <span style="background:#1E1E1E;border:1px solid #2a2a2c;border-radius:4px;padding:5px 12px;font-size:11px;color:#848485;"><span style="color:#EFC06E;font-weight:700;">0:05</span> · Leadership Desired Wins</span>
+    <span style="background:#1E1E1E;border:1px solid #2a2a2c;border-radius:4px;padding:5px 12px;font-size:11px;color:#848485;"><span style="color:#EFC06E;font-weight:700;">0:30</span> · Strategic Discussion</span>
+    <span style="background:#1E1E1E;border:1px solid #2a2a2c;border-radius:4px;padding:5px 12px;font-size:11px;color:#848485;"><span style="color:#EFC06E;font-weight:700;">0:55</span> · COO Wrap-up</span>
+  </div>
+
+  <!-- KPI OVERVIEW -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">KPI Overview</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:#848485;">Click label or value to edit · Set status with G / Y / R</span>
+        <button class="btn btn-ghost btn-sm" onclick="addKpi()">+ Add KPI</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- Key Projects -->
+    <div class="projects-card">
+      <div class="projects-header">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);">Key Projects</div>
+        <button class="btn btn-ghost btn-sm" onclick="addProject()">+ Add Project</button>
+      </div>
+      <div class="projects-list" id="projectsList"></div>
+      <div class="edit-hint">Edit project name inline · Click G/Y/R to set status · Click × to remove</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- LEADERSHIP DESIRED WINS -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Leadership Desired Wins</div>
+      <button class="btn btn-ghost btn-sm" onclick="addMember()">+ Add Member</button>
+    </div>
+    <div class="members-tabs" id="membersTabs"></div>
+    <div id="memberPanels"></div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- STRATEGIC DISCUSSION -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Strategic Discussion Topic</div>
+      <span style="font-size:11px;color:#848485;">0:30 – 0:55 · Rotating owner</span>
+    </div>
+    <div class="strategic-card">
+      <div class="strat-field">
+        <label>Topic</label>
+        <input type="text" id="strat-topic" placeholder="e.g. Q3 Headcount Plan" />
+      </div>
+      <div class="strat-field">
+        <label>Owner</label>
+        <input type="text" id="strat-owner" placeholder="e.g. COO" />
+      </div>
+      <div class="strat-field">
+        <label>The Ask (decision / recommendation / resource)</label>
+        <textarea id="strat-ask" placeholder="What does the team need to decide or approve?"></textarea>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#848485;">
+      Next week's topic: <input id="next-topic" style="background:transparent;border:none;border-bottom:1px dotted #534E4F;outline:none;color:#EFC06E;font-size:11px;width:300px;padding:2px 4px;" placeholder="Announce so owner can prepare…">
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ACTION ITEMS -->
+  <section class="section" style="padding-bottom:60px;">
+    <div class="section-header">
+      <div class="section-title">Action Items</div>
+      <button class="btn btn-ghost btn-sm" onclick="addAction()">+ Add Action</button>
+    </div>
+    <table class="actions-table">
+      <thead>
+        <tr>
+          <th style="width:160px;">Owner</th>
+          <th>Task</th>
+          <th style="width:130px;">Due Date</th>
+          <th style="width:50px;text-align:center;">Done</th>
+          <th style="width:36px;"></th>
+        </tr>
+      </thead>
+      <tbody id="actionsBody"></tbody>
+    </table>
+  </section>
+
+</div>
+
+<!-- SAVE BAR -->
+<div class="save-bar">
+  <div class="save-status" id="saveStatus">No changes yet</div>
+  <div class="save-actions">
+    <button class="btn btn-ghost btn-sm" onclick="clearAll()" style="color:#FE6D63;border-color:#534E4F;">Clear All Data</button>
+    <button class="btn btn-primary btn-sm" onclick="saveDashboard()">💾 Save</button>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'jazz_dashboard_v2';
+let unsaved = false;
+
+// ── Defaults ──────────────────────────────────────────────────────────────
+const DEFAULT_KPIS = [
+  { id: 'arr',       label: 'ARR',            current: '', target: '', status: 'G', note: '' },
+  { id: 'customers', label: 'Customer Count',  current: '', target: '', status: 'G', note: '' },
+];
+
+const DEFAULT_MEMBERS = [
+  { id: 'ceo',    name: 'CEO',              week: ['','',''], month: '', quarter: '' },
+  { id: 'coo',    name: 'COO',              week: ['','',''], month: '', quarter: '' },
+  { id: 'vpsales',name: 'VP Sales',         week: ['','',''], month: '', quarter: '' },
+  { id: 'vpprod', name: 'VP Product',       week: ['','',''], month: '', quarter: '' },
+  { id: 'vpeng',  name: 'VP Engineering',   week: ['','',''], month: '', quarter: '' },
+  { id: 'cfo',    name: 'CFO',              week: ['','',''], month: '', quarter: '' },
+];
+
+const DEFAULT_PROJECTS = [
+  { id: 1, name: 'Platform v2 Launch',      status: 'G' },
+  { id: 2, name: 'Enterprise Partnership',  status: 'Y' },
+  { id: 3, name: 'Compliance Certification',status: 'R' },
+];
+
+const DEFAULT_ACTIONS = [
+  { id: 1, owner: '', task: '', due: '', done: false },
+  { id: 2, owner: '', task: '', due: '', done: false },
+];
+
+function freshState() {
+  return {
+    weekDate: '',
+    kpis:     JSON.parse(JSON.stringify(DEFAULT_KPIS)),
+    projects: JSON.parse(JSON.stringify(DEFAULT_PROJECTS)),
+    members:  JSON.parse(JSON.stringify(DEFAULT_MEMBERS)),
+    strat:    { topic: '', owner: '', ask: '', nextTopic: '' },
+    actions:  JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
+  };
+}
+
+let state = freshState();
+
+// ── Persist ────────────────────────────────────────────────────────────────
+function saveDashboard() {
+  collectState();
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    setStatus('Saved ✓', true);
+    unsaved = false;
+  } catch(e) {
+    setStatus('Save failed – localStorage unavailable', false);
+  }
+}
+
+function loadDashboard() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate: if old format had object kpis, convert to array
+      if (parsed.kpis && !Array.isArray(parsed.kpis)) {
+        const labelMap = { arr: 'ARR', customers: 'Customer Count', povs: 'POVs / Pilots' };
+        parsed.kpis = Object.entries(parsed.kpis).map(([id, v]) => ({
+          id, label: labelMap[id] || id, ...v
+        }));
+      }
+      state = parsed;
+    }
+  } catch(e) {}
+  renderAll();
+}
+
+function setStatus(msg, saved) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  el.className = 'save-status ' + (saved ? 'saved' : 'unsaved');
+}
+
+function markUnsaved() {
+  if (!unsaved) { unsaved = true; setStatus('Unsaved changes', false); }
+}
+
+document.addEventListener('input', markUnsaved);
+
+// ── Collect state ──────────────────────────────────────────────────────────
+function collectState() {
+  state.weekDate = document.getElementById('weekDate').value;
+
+  // KPIs — dynamic
+  state.kpis = Array.from(document.querySelectorAll('.kpi-card')).map(card => ({
+    id:      card.dataset.id,
+    label:   card.querySelector('.kpi-label-input').value,
+    current: card.querySelector('.kpi-current').value,
+    target:  card.querySelector('.kpi-target-input').value,
+    status:  card.dataset.status,
+    note:    card.querySelector('.kpi-note-ta').value,
+  }));
+
+  // Projects
+  state.projects = Array.from(document.querySelectorAll('.project-row')).map(row => ({
+    id:     parseInt(row.dataset.id),
+    name:   row.querySelector('.proj-name').value,
+    status: row.dataset.status,
+  }));
+
+  // Members
+  state.members = Array.from(document.querySelectorAll('.member-panel')).map(panel => {
+    const id = panel.id.replace('panel-', '');
+    const m = state.members.find(x => x.id === id) || { id };
+    return {
+      id,
+      name:    panel.querySelector('.member-name-input').value,
+      week:    Array.from(panel.querySelectorAll('.win-week')).map(i => i.value),
+      month:   panel.querySelector('.win-month').value,
+      quarter: panel.querySelector('.win-quarter').value,
+    };
+  });
+
+  state.strat.topic     = document.getElementById('strat-topic').value;
+  state.strat.owner     = document.getElementById('strat-owner').value;
+  state.strat.ask       = document.getElementById('strat-ask').value;
+  state.strat.nextTopic = document.getElementById('next-topic').value;
+
+  state.actions = Array.from(document.querySelectorAll('#actionsBody tr')).map(row => ({
+    id:    parseInt(row.dataset.id),
+    owner: row.querySelector('.act-owner').value,
+    task:  row.querySelector('.act-task').value,
+    due:   row.querySelector('.act-due').value,
+    done:  row.querySelector('.act-done').checked,
+  }));
+}
+
+// ── Render all ─────────────────────────────────────────────────────────────
+function renderAll() {
+  document.getElementById('weekDate').value = state.weekDate;
+  renderKpis();
+  renderProjects();
+  renderMembers();
+  renderActions();
+  document.getElementById('strat-topic').value  = state.strat.topic;
+  document.getElementById('strat-owner').value  = state.strat.owner;
+  document.getElementById('strat-ask').value    = state.strat.ask;
+  document.getElementById('next-topic').value   = state.strat.nextTopic || '';
+}
+
+// ── KPIs (dynamic) ─────────────────────────────────────────────────────────
+let kpiCounter = 50;
+
+function renderKpis() {
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  state.kpis.forEach(k => grid.appendChild(makeKpiCard(k)));
+}
+
+function makeKpiCard(k) {
+  const card = document.createElement('div');
+  card.className = 'kpi-card status-' + k.status;
+  card.dataset.id     = k.id;
+  card.dataset.status = k.status;
+  card.innerHTML = `
+    <div class="kpi-card-header">
+      <input class="kpi-label-input" value="${escHtml(k.label)}" placeholder="KPI Name" title="Click to rename" />
+      <div class="kpi-card-controls">
+        <div class="rag-picker">
+          <button class="rag-btn G ${k.status==='G'?'active':''}" onclick="setKpiStatus('${k.id}',this,'G')">G</button>
+          <button class="rag-btn Y ${k.status==='Y'?'active':''}" onclick="setKpiStatus('${k.id}',this,'Y')">Y</button>
+          <button class="rag-btn R ${k.status==='R'?'active':''}" onclick="setKpiStatus('${k.id}',this,'R')">R</button>
+        </div>
+        <button class="kpi-remove" onclick="removeKpi('${k.id}')" title="Remove KPI">×</button>
+      </div>
+    </div>
+    <div class="kpi-value"><input class="kpi-current" value="${escHtml(k.current)}" placeholder="—" /></div>
+    <div class="kpi-target">Target: <input class="kpi-target-input" value="${escHtml(k.target)}" placeholder="Set target…" /></div>
+    <div class="kpi-note"><textarea class="kpi-note-ta" placeholder="Notes / context…" rows="2">${escHtml(k.note)}</textarea></div>
+  `;
+  return card;
+}
+
+function setKpiStatus(id, btn, status) {
+  const card = document.querySelector(`.kpi-card[data-id="${id}"]`);
+  card.dataset.status = status;
+  card.className = 'kpi-card status-' + status;
+  card.querySelectorAll('.rag-btn').forEach(b => b.classList.toggle('active', b.textContent === status));
+  markUnsaved();
+}
+
+function addKpi() {
+  const id = 'kpi_' + (++kpiCounter);
+  const k = { id, label: 'New KPI', current: '', target: '', status: 'G', note: '' };
+  state.kpis.push(k);
+  const card = makeKpiCard(k);
+  document.getElementById('kpiGrid').appendChild(card);
+  card.querySelector('.kpi-label-input').focus();
+  card.querySelector('.kpi-label-input').select();
+  markUnsaved();
+}
+
+function removeKpi(id) {
+  state.kpis = state.kpis.filter(k => k.id !== id);
+  const card = document.querySelector(`.kpi-card[data-id="${id}"]`);
+  if (card) card.remove();
+  markUnsaved();
+}
+
+// ── Projects ────────────────────────────────────────────────────────────────
+let projectCounter = 100;
+
+function renderProjects() {
+  const list = document.getElementById('projectsList');
+  list.innerHTML = '';
+  state.projects.forEach(p => list.appendChild(makeProjectRow(p)));
+}
+
+function makeProjectRow(p) {
+  const row = document.createElement('div');
+  row.className = 'project-row';
+  row.dataset.id = p.id;
+  row.dataset.status = p.status;
+  row.innerHTML = `
+    <div class="rag-picker">
+      <button class="rag-btn G ${p.status==='G'?'active':''}" onclick="setProjStatus(${p.id},'G',this)">G</button>
+      <button class="rag-btn Y ${p.status==='Y'?'active':''}" onclick="setProjStatus(${p.id},'Y',this)">Y</button>
+      <button class="rag-btn R ${p.status==='R'?'active':''}" onclick="setProjStatus(${p.id},'R',this)">R</button>
+    </div>
+    <span class="badge ${p.status}" id="proj-badge-${p.id}">${p.status==='G'?'On Track':p.status==='Y'?'At Risk':'Off Track'}</span>
+    <input class="proj-name" value="${escHtml(p.name)}" placeholder="Project name…" style="flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-family:inherit;" />
+    <button class="project-del" onclick="removeProject(${p.id})">×</button>
+  `;
+  return row;
+}
+
+function setProjStatus(id, status, btn) {
+  const row = document.querySelector(`.project-row[data-id="${id}"]`);
+  row.dataset.status = status;
+  row.querySelectorAll('.rag-btn').forEach(b => b.classList.toggle('active', b.textContent === status));
+  const badge = document.getElementById('proj-badge-'+id);
+  badge.className = 'badge ' + status;
+  badge.textContent = status==='G'?'On Track':status==='Y'?'At Risk':'Off Track';
+  markUnsaved();
+}
+
+function addProject() {
+  const id = ++projectCounter;
+  const p = { id, name: '', status: 'G' };
+  state.projects.push(p);
+  document.getElementById('projectsList').appendChild(makeProjectRow(p));
+  markUnsaved();
+}
+
+function removeProject(id) {
+  state.projects = state.projects.filter(p => p.id !== id);
+  const row = document.querySelector(`.project-row[data-id="${id}"]`);
+  if (row) row.remove();
+  markUnsaved();
+}
+
+// ── Members ──────────────────────────────────────────────────────────────────
+let activeMemberId = null;
+
+function renderMembers() {
+  const tabs   = document.getElementById('membersTabs');
+  const panels = document.getElementById('memberPanels');
+  tabs.innerHTML   = '';
+  panels.innerHTML = '';
+
+  state.members.forEach((m, i) => {
+    // Tab
+    const tab = document.createElement('button');
+    tab.className = 'tab-btn' + (i === 0 && !activeMemberId ? ' active' : (m.id === activeMemberId ? ' active' : ''));
+    tab.textContent = m.name || 'Member';
+    tab.id = 'tab-' + m.id;
+    tab.onclick = () => switchTab(m.id);
+    tabs.appendChild(tab);
+
+    // Panel
+    const panel = document.createElement('div');
+    const isActive = (i === 0 && !activeMemberId) || m.id === activeMemberId;
+    panel.className = 'member-panel' + (isActive ? ' active' : '');
+    panel.id = 'panel-' + m.id;
+    panel.innerHTML = `
+      <div class="member-card">
+        <div class="member-card-header">
+          <input class="member-name-input" value="${escHtml(m.name)}" placeholder="Name / Role"
+            oninput="document.getElementById('tab-${m.id}').textContent=this.value||'Member';" />
+          <div class="member-controls">
+            <button class="move-btn" onclick="moveMember('${m.id}',-1)" title="Move left">←</button>
+            <button class="move-btn" onclick="moveMember('${m.id}',1)"  title="Move right">→</button>
+            <button class="btn btn-ghost btn-sm" style="color:#FE6D63;border-color:#534E4F;" onclick="removeMember('${m.id}')">Remove</button>
+          </div>
+        </div>
+        <div class="horizon-grid">
+          <div class="horizon-block">
+            <div class="horizon-label week">
+              Desired Wins — Next Week
+              <span style="font-size:10px;color:#848485;font-weight:400;text-transform:none;">max 3</span>
+            </div>
+            ${[0,1,2].map(j => `
+              <div class="win-row">
+                <div class="win-number">${j+1}</div>
+                <input class="win-input win-week" value="${escHtml((m.week||[])[j]||'')}"
+                  placeholder="${j===0?'Most important desired win…':'Desired win '+(j+1)+'…'}" />
+              </div>
+            `).join('')}
+          </div>
+          <div class="horizon-block">
+            <div class="horizon-label month">Desired Wins — Next Month</div>
+            <textarea class="wins-textarea win-month"
+              placeholder="Initiatives expected to close or reach a checkpoint this month…">${escHtml(m.month||'')}</textarea>
+          </div>
+          <div class="horizon-block">
+            <div class="horizon-label qtr">Desired Wins — Next Quarter</div>
+            <textarea class="wins-textarea win-quarter"
+              placeholder="Quarterly OKRs / strategic bets — pulse check on trajectory…">${escHtml(m.quarter||'')}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    panels.appendChild(panel);
+  });
+
+  // + Member tab
+  const addTab = document.createElement('button');
+  addTab.className = 'tab-btn add-member';
+  addTab.textContent = '+ Member';
+  addTab.onclick = addMember;
+  tabs.appendChild(addTab);
+}
+
+function switchTab(id) {
+  activeMemberId = id;
+  document.querySelectorAll('.tab-btn:not(.add-member)').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.member-panel').forEach(p => p.classList.remove('active'));
+  const t = document.getElementById('tab-'+id);
+  const p = document.getElementById('panel-'+id);
+  if (t) t.classList.add('active');
+  if (p) p.classList.add('active');
+}
+
+function addMember() {
+  collectState();
+  const id = 'member_' + Date.now();
+  state.members.push({ id, name: 'New Member', week: ['','',''], month: '', quarter: '' });
+  activeMemberId = id;
+  renderMembers();
+  const input = document.querySelector(`#panel-${id} .member-name-input`);
+  if (input) { input.focus(); input.select(); }
+  markUnsaved();
+}
+
+function removeMember(id) {
+  if (state.members.length <= 1) return alert('At least one member required.');
+  collectState();
+  state.members = state.members.filter(m => m.id !== id);
+  activeMemberId = null;
+  renderMembers();
+  markUnsaved();
+}
+
+function moveMember(id, dir) {
+  collectState();
+  const idx = state.members.findIndex(m => m.id === id);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.members.length) return;
+  const arr = state.members;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  activeMemberId = id;
+  renderMembers();
+  markUnsaved();
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+let actionCounter = 200;
+
+function renderActions() {
+  const body = document.getElementById('actionsBody');
+  body.innerHTML = '';
+  state.actions.forEach(a => body.appendChild(makeActionRow(a)));
+}
+
+function makeActionRow(a) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = a.id;
+  if (a.done) tr.classList.add('done','action-row');
+  tr.innerHTML = `
+    <td><input type="text" class="act-owner" value="${escHtml(a.owner)}" placeholder="Owner name…" /></td>
+    <td><input type="text" class="act-task"  value="${escHtml(a.task)}"  placeholder="Task description…" /></td>
+    <td><input type="date" class="act-due"   value="${escHtml(a.due)}" /></td>
+    <td style="text-align:center;"><input type="checkbox" class="act-done" ${a.done?'checked':''} onchange="toggleDone(this)" /></td>
+    <td><button class="project-del" onclick="removeAction(${a.id})">×</button></td>
+  `;
+  return tr;
+}
+
+function addAction() {
+  const id = ++actionCounter;
+  const a = { id, owner: '', task: '', due: '', done: false };
+  state.actions.push(a);
+  document.getElementById('actionsBody').appendChild(makeActionRow(a));
+  markUnsaved();
+}
+
+function removeAction(id) {
+  state.actions = state.actions.filter(a => a.id !== id);
+  const row = document.querySelector(`#actionsBody tr[data-id="${id}"]`);
+  if (row) row.remove();
+  markUnsaved();
+}
+
+function toggleDone(checkbox) {
+  checkbox.closest('tr').classList.toggle('done', checkbox.checked);
+  markUnsaved();
+}
+
+// ── New Week ──────────────────────────────────────────────────────────────────
+function newWeek() {
+  if (!confirm('Start a new week? Weekly desired wins and completed actions will be cleared. KPIs and projects are kept.')) return;
+  collectState();
+  state.members.forEach(m => { m.week = ['','','']; });
+  state.actions = state.actions.filter(a => !a.done);
+  const nextTopic = state.strat.nextTopic;
+  state.strat = { topic: nextTopic, owner: '', ask: '', nextTopic: '' };
+  const d = new Date(state.weekDate);
+  if (!isNaN(d)) {
+    d.setDate(d.getDate() + 7);
+    state.weekDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  renderAll();
+  markUnsaved();
+}
+
+// ── Clear all ─────────────────────────────────────────────────────────────────
+function clearAll() {
+  if (!confirm('Clear ALL dashboard data? This cannot be undone.')) return;
+  try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+  state = freshState();
+  activeMemberId = null;
+  renderAll();
+  setStatus('Cleared', false);
+  unsaved = false;
+}
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+function exportWeekCSV() {
+  collectState();
+  const week = state.weekDate || 'Unknown week';
+  const rows = [['Week','Type','Category','Sub-category','Content','Value','Target','Status','Note']];
+
+  state.kpis.forEach(k => {
+    rows.push([week, 'KPI', k.label, '', '', k.current, k.target, k.status, k.note]);
+  });
+
+  state.projects.forEach(p => {
+    rows.push([week, 'Project', p.name, '', '', '', '', p.status, '']);
+  });
+
+  state.members.forEach(m => {
+    (m.week || []).forEach(win => {
+      if (win) rows.push([week, 'Desired Win', m.name, 'Next Week', win, '', '', '', '']);
+    });
+    if (m.month)   rows.push([week, 'Desired Win', m.name, 'Next Month',   m.month,   '', '', '', '']);
+    if (m.quarter) rows.push([week, 'Desired Win', m.name, 'Next Quarter', m.quarter, '', '', '', '']);
+  });
+
+  if (state.strat.topic) {
+    rows.push([week, 'Topic', state.strat.owner || '', '', state.strat.topic, '', '', '', state.strat.ask || '']);
+  }
+
+  const csv = rows.map(r =>
+    r.map(cell => {
+      const s = String(cell || '');
+      return (s.includes(',') || s.includes('"') || s.includes('\n'))
+        ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'Jazz_Meeting_' + (state.weekDate || 'week').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus('Exported ✓  — append to your Google Sheet', true);
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadDashboard();
+
+if (!state.weekDate) {
+  const now = new Date();
+  document.getElementById('weekDate').value = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+setStatus('Loaded from storage', true);
+</script>
+</body>
+</html>
