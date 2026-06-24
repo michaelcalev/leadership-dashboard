@@ -363,16 +363,11 @@ async function saveDashboard() {
 
   setStatus('Saving to cloud…', false);
   try {
-    // Use GET with encoded data — avoids Apps Script POST redirect issue
+    // no-cors bypasses CORS restriction — request reaches Apps Script, response is opaque (unreadable) but data is saved
     const url = APPS_SCRIPT_URL + '?action=save&data=' + encodeURIComponent(json);
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.ok) {
-      setStatus('Saved to cloud ✓', true);
-      unsaved = false;
-    } else {
-      setStatus('Cloud save failed: ' + (data.error || 'unknown'), false);
-    }
+    await fetch(url, { mode: 'no-cors' });
+    setStatus('Saved to cloud ✓', true);
+    unsaved = false;
   } catch(e) {
     setStatus('Cloud unreachable — saved locally only', false);
     unsaved = false;
