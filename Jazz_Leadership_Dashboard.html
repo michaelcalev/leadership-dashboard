@@ -281,7 +281,7 @@
 
 <!-- SAVE BAR -->
 <div class="save-bar">
-  <div class="save-status" id="saveStatus">No changes yet</div>
+  <div class="save-status" id="saveStatus">Loading…</div>
   <div class="save-actions">
     <button class="btn btn-ghost btn-sm" onclick="clearAll()" style="color:#FE6D63;border-color:#534E4F;">Clear All Data</button>
     <button class="btn btn-primary btn-sm" onclick="saveDashboard()">💾 Save</button>
@@ -293,8 +293,7 @@ const STORE_KEY = 'jazz_dashboard_v2';
 let unsaved = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CLOUD SYNC — paste your deployed Apps Script URL below after setup.
-// Leave as-is to keep using localStorage only (offline mode).
+// CLOUD SYNC — Google Apps Script URL (read/write via GET params)
 // ─────────────────────────────────────────────────────────────────────────────
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1IxH_YQ_JIYZoMuRgPryPZWcpVQ9c1SSiO-SwAIwvmwLzY9Ab6v62LfscPeOHgpCOlg/exec';
 
@@ -337,9 +336,8 @@ function freshState() {
 
 let state = freshState();
 
-// ── Persist ────────────────────────────────────────────────────────────────
+// ── Migration helper ───────────────────────────────────────────────────────
 function migrateState(parsed) {
-  // Migrate v1: object kpis → array
   if (parsed.kpis && !Array.isArray(parsed.kpis)) {
     const labelMap = { arr: 'ARR', customers: 'Customer Count', povs: 'POVs / Pilots' };
     parsed.kpis = Object.entries(parsed.kpis).map(([id, v]) => ({
@@ -349,11 +347,12 @@ function migrateState(parsed) {
   return parsed;
 }
 
+// ── Persist ────────────────────────────────────────────────────────────────
 async function saveDashboard() {
   collectState();
   const json = JSON.stringify(state);
 
-  // Always cache locally for offline resilience
+  // Always cache locally
   try { localStorage.setItem(STORE_KEY, json); } catch(e) {}
 
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
@@ -364,12 +363,9 @@ async function saveDashboard() {
 
   setStatus('Saving to cloud…', false);
   try {
-    // Use text/plain to avoid CORS preflight — Apps Script receives it fine
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: json,
-    });
+    // Use GET with encoded data — avoids Apps Script POST redirect issue
+    const url = APPS_SCRIPT_URL + '?action=save&data=' + encodeURIComponent(json);
+    const res = await fetch(url);
     const data = await res.json();
     if (data.ok) {
       setStatus('Saved to cloud ✓', true);
@@ -398,18 +394,18 @@ async function loadDashboard() {
     return;
   }
 
-  // 2. Fetch from cloud and update if newer
+  // 2. Fetch from cloud and update
   setStatus('Syncing from cloud…', false);
   try {
     const res = await fetch(APPS_SCRIPT_URL + '?t=' + Date.now());
     const data = await res.json();
     if (data && !data.error && Object.keys(data).length > 0) {
       state = migrateState(data);
-      localStorage.setItem(STORE_KEY, JSON.stringify(state)); // update local cache
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
       renderAll();
       setStatus('Synced from cloud ✓', true);
     } else {
-      setStatus('Loaded from local cache', true);
+      setStatus('Cloud empty — starting fresh', true);
     }
   } catch(e) {
     setStatus('Cloud unreachable — showing local data', false);
@@ -432,7 +428,6 @@ document.addEventListener('input', markUnsaved);
 function collectState() {
   state.weekDate = document.getElementById('weekDate').value;
 
-  // KPIs — dynamic
   state.kpis = Array.from(document.querySelectorAll('.kpi-card')).map(card => ({
     id:      card.dataset.id,
     label:   card.querySelector('.kpi-label-input').value,
@@ -442,17 +437,14 @@ function collectState() {
     note:    card.querySelector('.kpi-note-ta').value,
   }));
 
-  // Projects
   state.projects = Array.from(document.querySelectorAll('.project-row')).map(row => ({
     id:     parseInt(row.dataset.id),
     name:   row.querySelector('.proj-name').value,
     status: row.dataset.status,
   }));
 
-  // Members
   state.members = Array.from(document.querySelectorAll('.member-panel')).map(panel => {
     const id = panel.id.replace('panel-', '');
-    const m = state.members.find(x => x.id === id) || { id };
     return {
       id,
       name:    panel.querySelector('.member-name-input').value,
@@ -610,7 +602,6 @@ function renderMembers() {
   panels.innerHTML = '';
 
   state.members.forEach((m, i) => {
-    // Tab
     const tab = document.createElement('button');
     tab.className = 'tab-btn' + (i === 0 && !activeMemberId ? ' active' : (m.id === activeMemberId ? ' active' : ''));
     tab.textContent = m.name || 'Member';
@@ -618,7 +609,6 @@ function renderMembers() {
     tab.onclick = () => switchTab(m.id);
     tabs.appendChild(tab);
 
-    // Panel
     const panel = document.createElement('div');
     const isActive = (i === 0 && !activeMemberId) || m.id === activeMemberId;
     panel.className = 'member-panel' + (isActive ? ' active' : '');
@@ -664,7 +654,6 @@ function renderMembers() {
     panels.appendChild(panel);
   });
 
-  // + Member tab
   const addTab = document.createElement('button');
   addTab.className = 'tab-btn add-member';
   addTab.textContent = '+ Member';
@@ -784,14 +773,10 @@ async function clearAll() {
   renderAll();
   setStatus('Cleared', false);
   unsaved = false;
-  // Also clear cloud
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(freshState()),
-      });
+      const url = APPS_SCRIPT_URL + '?action=save&data=' + encodeURIComponent(JSON.stringify(freshState()));
+      await fetch(url);
     } catch(e) {}
   }
 }
